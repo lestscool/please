@@ -1,0 +1,254 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Klassenplattform 8B — Clean + Emoji Game</title>
+<link rel="stylesheet" href="style.css"> </head>
+<body>
+<div class="container">
+  <div class="topbar">
+    <div class="brand">
+      <div class="appName">Klasse 8B</div>
+      <div class="appSub small">Schulplattform — Clean & Fun</div>
+    </div>
+    <div class="controls">
+      <button id="bellBtn" class="iconBtn" title="Benachrichtigungen">🔔 <span id="bellCount" class="unread hidden">0</span></button>
+      <button id="chatToggle" class="iconBtn" title="Chat">💬</button>
+      <div id="profileBtn" class="profileBtn" title="Profil">?</div>
+    </div>
+  </div>
+
+    <div id="authCard" class="card authCard">
+    <div style="display:flex;justify-content:space-between;align-items:center">
+      <div>
+        <h2 style="margin:0">Willkommen</h2>
+        <div class="small">Melde dich an oder registriere dich (Kürzel = <b>8bschul</b>).</div>
+      </div>
+      <div style="text-align:right" class="small">Klasse 8B</div>
+      </div>
+
+    <div id="authForms" style="margin-top:14px;display:flex;gap:14px">
+      <div style="flex:1">
+        <div id="loginForm">
+          <input id="loginUser" class="input" placeholder="Benutzername">
+          <input id="loginPass" class="input" type="password" placeholder="Passwort">
+          <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:8px">
+            <button id="showReg" class="btn">Registrieren</button>
+            <button id="loginBtn" class="btn primary">Anmelden</button>
+          </div>
+          <div id="loginMsg" class="small" style="color:#ff8aa1;margin-top:8px"></div>
+        </div>
+
+        <div id="regForm" class="hidden" style="margin-top:10px">
+          <input id="regFirst" class="input" placeholder="Vorname">
+          <input id="regLast" class="input" placeholder="Nachname">
+          <input id="regUser" class="input" placeholder="Gewünschter Benutzername">
+          <input id="regPass" class="input" type="password" placeholder="Passwort">
+          <input id="regCode" class="input" placeholder="Kürzel (8bschul)">
+          <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:8px">
+            <button id="cancelReg" class="btn">Abbrechen</button>
+            <button id="regBtn" class="btn primary">Registrieren</button>
+          </div>
+          <div id="regMsg" class="small" style="color:#7ee3ff;margin-top:8px"></div>
+        </div>
+      </div>
+
+      <div style="width:280px">
+        <div class="card">
+          <div style="display:flex;flex-direction:column;align-items:center;gap:8px">
+            <div class="logoCircle" style="width:72px;height:72px;font-size:28px">8B</div>
+            <div style="font-weight:700">Klasse 8B</div>
+            <div class="small">Gutes Lernen. Besserer Stil.</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+    <div id="appLayout" class="leftLayout hidden">
+    <div class="sidebar">
+      <div class="logo">
+        <div class="logoCircle">8B</div>
+        <div style="display:flex;flex-direction:column">
+          <div style="font-weight:800">Klasse 8B</div>
+          <div class="small">Dashboard</div>
+        </div>
+      </div>
+
+      <div id="navHome" class="navItem active">🏠 Start</div>
+      <div id="navPosts" class="navItem">📰 Posts</div>
+      <div id="navChat" class="navItem">💬 Chat</div>
+      <div id="navGame" class="navItem">🎮 Emoji-Klicker</div>
+      <div id="navProfile" class="navItem">⚙️ Profil</div>
+      <div id="navLogout" class="navItem">🚪 Logout</div>
+
+      <div class="sidebarFooter small">Angemeldet als <span id="sidebarUser">—</span></div>
+    </div>
+
+    <div class="content">
+      <div id="viewHome" class="card">
+        <div class="hero">
+          <div>
+            <div class="heroGreeting" id="heroGreeting">Hallo, Guest 👋</div>
+            <div class="small" id="heroSub">Schön, dass du da bist — wähle links ein Menü.</div>
+          </div>
+          <div style="text-align:right">
+            <div class="small">Schnellzugriff</div>
+            <div style="display:flex;gap:8px;margin-top:8px">
+              <button id="quickPost" class="btn">📝 Posten</button>
+              <button id="quickChat" class="btn">💬 Chat</button>
+              <button id="quickGame" class="btn">🎮 Spiel</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div id="viewPosts" class="hidden">
+        <div class="card">
+          <div style="display:flex;gap:12px;align-items:flex-start">
+            <div class="initialCircle" id="composerInitial">A</div>
+            <div style="flex:1">
+              <textarea id="postInput" class="textarea" placeholder="Schreibe etwas für die Klasse..."></textarea>
+              <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:8px">
+                <button id="postBtn" class="btn primary">Posten</button>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div id="feedArea"></div>
+      </div>
+
+      <div id="viewChat" class="hidden">
+        <div class="card" style="display:flex;gap:12px">
+          <div style="width:260px">
+            <div class="small">Kontakte</div>
+            <div id="contactsList" class="chatUsers"></div>
+          </div>
+          <div style="flex:1;display:flex;flex-direction:column">
+            <div class="small" id="chatHeaderFull">Wähle einen Kontakt</div>
+            <div id="chatFullMessages" class="messages" style="background:transparent"></div>
+            <div style="display:flex;gap:8px;margin-top:8px">
+              <input id="chatFullInput" class="input" placeholder="Nachricht...">
+              <button id="chatFullSend" class="btn primary">Senden</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div id="viewGame" class="hidden">
+        <div class="card emojiGame">
+          <div style="display:flex;align-items:center;gap:12px">
+            <div class="initialCircle" id="gameInitial" style="width:64px;height:64px;font-size:24px">EK</div>
+            <div>
+              <div style="font-weight:800" id="gameTitle">Emoji Klicker</div>
+              <div class="small">Klicke das Emoji, sammle Punkte & schalte neue frei!</div>
+            </div>
+          </div>
+
+          <div style="display:flex;gap:12px;align-items:center;margin-top:6px">
+            <div style="font-size:18px">Punkte:</div>
+            <div id="gamePoints" style="font-weight:800;font-size:20px">0</div>
+            <div style="flex:1">
+              <div class="progressBar"><div id="gameProgress" class="progressFill"></div></div>
+            </div>
+          </div>
+
+          <div style="margin-top:8px;display:flex;gap:12px;align-items:center">
+            <div id="activeEmoji" class="emojiBig">😀</div>
+            <div style="display:flex;flex-direction:column;gap:8px;align-items:flex-start">
+              <div class="small">Freigeschaltet:</div>
+              <div id="unlockedList" style="display:flex;gap:8px;flex-wrap:wrap"></div>
+            </div>
+          </div>
+
+          <div style="margin-top:12px;display:flex;gap:8px;align-items:center">
+            <button id="upgradeBtn" class="btn">Upgrade (x2 für 20 Punkte)</button>
+            <button id="resetGame" class="btn">Reset</button>
+          </div>
+        </div>
+      </div>
+
+      <div id="viewProfile" class="hidden">
+        <div class="card" style="display:flex;gap:12px;align-items:center">
+          <div class="initialCircle" id="profileInitial" style="width:84px;height:84px;font-size:36px">A</div>
+          <div style="flex:1">
+            <div id="profileName" style="font-weight:800">Name</div>
+            <div class="small" id="profileUser">@user</div>
+            <div style="margin-top:12px">
+              <label class="small">Hintergrund (Live-Preview)</label>
+              <div class="colorRow">
+                <div id="previewDark" class="colorPreview" style="background:#07111a"></div>
+                <div id="previewLight" class="colorPreview" style="background:#f6f8fb"></div>
+                <div id="previewGreen" class="colorPreview" style="background:#071614"></div>
+              </div>
+              <select id="themeSelect" class="input" style="margin-top:8px">
+                <option value="dark">Dunkel (Standard)</option>
+                <option value="light">Hell</option>
+                <option value="green">Grün</option>
+              </select>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="footer">© Klasse 8B — Clean UI</div>
+    </div>
+
+  </div>
+</div>
+
+<div id="chatSidebar" class="chatSidebar">
+  <div style="display:flex;justify-content:space-between;align-items:center">
+    <div style="font-weight:800">Chat</div>
+    <div>
+      <button id="chatClose" class="iconBtn">✖</button>
+    </div>
+  </div>
+
+  <div style="margin-top:8px">
+    <div class="small">Kontakte</div>
+    <div id="chatContactsRight" class="chatUsers"></div>
+  </div>
+
+  <div class="chatWindow" id="chatSidebarWindow" style="display:none">
+    <div id="chatSidebarTitle" style="padding:8px;border-bottom:1px solid var(--soft)">—</div>
+    <div id="chatSidebarMessages" class="messages"></div>
+    <div style="display:flex;gap:8px;margin-top:8px">
+      <input id="chatSidebarInput" class="input" placeholder="Nachricht...">
+      <button id="chatSidebarSend" class="btn primary">Senden</button>
+    </div>
+  </div>
+</div>
+
+<div id="profilePanel" class="profilePanel">
+  <div style="display:flex;flex-direction:column;gap:8px;align-items:center">
+    <div class="initialCircle" id="panelInitialLarge" style="width:96px;height:96px;font-size:36px">A</div>
+    <div id="panelName" style="font-weight:800">Name</div>
+    <div id="panelUser" class="small">@user</div>
+
+    <div style="width:100%;margin-top:8px">
+      <label class="small">Hintergrund (Live-Vorschau)</label>
+      <div class="colorRow">
+        <div id="panelPreviewDark" class="colorPreview" style="background:#07111a"></div>
+        <div id="panelPreviewLight" class="colorPreview" style="background:#f6f8fb"></div>
+        <div id="panelPreviewGreen" class="colorPreview" style="background:#071614"></div>
+      </div>
+      <select id="panelThemeSelect" class="input" style="margin-top:8px">
+        <option value="dark">Dunkel</option>
+        <option value="light">Hell</option>
+        <option value="green">Grün</option>
+      </select>
+    </div>
+
+    <div style="display:flex;gap:8px;margin-top:8px">
+      <button id="panelClose" class="btn">Schließen</button>
+      <button id="panelLogout" class="btn">Logout</button>
+    </div>
+  </div>
+</div>
+
+<footer style="height:20px"></footer>
+
+<script type="module" src="script.js"></script> </body>
+</html>
