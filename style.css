@@ -1,7 +1,7 @@
 :root{
-  --bg:#07111a; --card:#0b1722; --muted:#9fb0bf;
-  --accent-1:#27e3c4; --accent-2:#36a9ff; --text:#e6eef6;
-  --soft: rgba(255,255,255,0.02); --radius:12px;
+  --bg:#07111a; --card:#0b1722; --muted:#9fb0bf;
+  --accent-1:#27e3c4; --accent-2:#36a9ff; --text:#e6eef6;
+  --soft: rgba(255,255,255,0.02); --radius:12px;
 }
 body.light{ --bg:#f6f8fb; --card:#ffffff; --muted:#546070; --text:#0b1220; --soft: rgba(0,0,0,0.04); }
 body.green{ --bg:#071614; --card:#081815; --muted:#9fbfae; --accent-1:#6ee37f; --accent-2:#27e3c4; --text:#e9f7ef; --soft: rgba(255,255,255,0.02); }

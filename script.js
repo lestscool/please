@@ -2,18 +2,18 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.1.0/firebas
 import { getDatabase, ref, push, set, onValue, update, get, child } from "https://www.gstatic.com/firebasejs/10.1.0/firebase-database.js";
 
 const firebaseConfig = {
-  apiKey: "AIzaSyDsW9JKhyBmlxv-BAcAa4gyHOX6R-KLoQA",
-  authDomain: "englischfairytale8b.firebaseapp.com",
-  databaseURL: "https://englischfairytale8b-default-rtdb.firebaseio.com",
-  projectId: "englischfairytale8b",
-  storageBucket: "englischfairytale8b.appspot.com",
-  messagingSenderId: "1009055770845",
-  appId: "1:1009055770845:web:56ab77e4788b4bc4ced334"
+  apiKey: "AIzaSyDsW9JKhyBmlxv-BAcAa4gyHOX6R-KLoQA",
+  authDomain: "englischfairytale8b.firebaseapp.com",
+  databaseURL: "https://englischfairytale8b-default-rtdb.firebaseio.com",
+  projectId: "englischfairytale8b",
+  storageBucket: "englischfairytale8b.appspot.com",
+  messagingSenderId: "1009055770845",
+  appId: "1:1009055770845:web:56ab77e4788b4bc4ced334"
 };
 initializeApp(firebaseConfig);
 const db = getDatabase();
 
-/* DOM refs */
+/* DOM refs (Verweise auf HTML-Elemente) */
 const authCard = document.getElementById('authCard');
 const showReg = document.getElementById('showReg');
 const regForm = document.getElementById('regForm');
@@ -93,181 +93,107 @@ const unlockedList = document.getElementById('unlockedList');
 const upgradeBtn = document.getElementById('upgradeBtn');
 const resetGameBtn = document.getElementById('resetGame');
 
-let currentUser = null; // {username,first,last,uid,isAdmin,theme,game}
+let currentUser = null; // {username,first,last,uid,isAdmin,theme}
 let currentChatId = null;
 let unreadTotal = 0;
-let usersCache = {};
 
 /* helpers */
 const uidFor = name => name.replace(/\s+/g,'_').toLowerCase();
 const now = () => Date.now();
 const el = (t,txt)=>{const d=document.createElement(t); if(txt!==undefined) d.textContent=txt; return d;};
-const scrollToBottom = (el) => { el.scrollTop = el.scrollHeight; };
 
 /* NAV/helpers */
 function setActive(navEl){
-  [navHome,navPosts,navChat,navGame,navProfile].forEach(n=>n.classList.remove('active'));
-  navEl.classList.add('active');
+  [navHome,navPosts,navChat,navGame,navProfile].forEach(n=>n.classList.remove('active'));
+  navEl.classList.add('active');
 }
 function showView(view){
-  [viewHome,viewPosts,viewChat,viewGame,viewProfile].forEach(v=>v.classList.add('hidden'));
-  view.classList.remove('hidden');
+  [viewHome,viewPosts,viewChat,viewGame,viewProfile].forEach(v=>v.classList.add('hidden'));
+  view.classList.remove('hidden');
 }
 
 /* UI: register/login toggle */
 showReg.addEventListener('click', ()=>{ regForm.classList.remove('hidden'); document.getElementById('loginForm').classList.add('hidden'); });
-cancelReg.addEventListener('click', ()=>{ regForm.classList.add('hidden'); document.getElementById('loginForm').classList.remove('hidden'); });
+document.getElementById('cancelReg').addEventListener('click', ()=>{ regForm.classList.add('hidden'); document.getElementById('loginForm').classList.remove('hidden'); });
 
 /* REGISTER */
 regBtn.addEventListener('click', async ()=>{
-  regMsg.textContent='';
-  const first = document.getElementById('regFirst').value.trim();
-  const last = document.getElementById('regLast').value.trim();
-  const username = document.getElementById('regUser').value.trim();
-  const password = document.getElementById('regPass').value;
-  const code = document.getElementById('regCode').value.trim();
-  if(!first||!last||!username||!password){ regMsg.textContent='Bitte alle Felder ausfüllen.'; return; }
-  if(code !== '8bschul'){ regMsg.textContent='Ungültiges Kürzel.'; return; }
-  const uid = uidFor(username);
-  const userRef = ref(db, `users/${uid}`);
-  const snap = await get(userRef);
-  if(snap.exists()){ regMsg.textContent='Benutzername bereits vergeben.'; return; }
-  await set(userRef, {username,first,last,password,code,uid,isAdmin:false,theme:'dark', game:{points:0, level:1, activeEmoji:'😀', unlocked:['😀']}});
-  currentUser = {username,first,last,uid,isAdmin:false,theme:'dark', game:{points:0, level:1, activeEmoji:'😀', unlocked:['😀']}};
-  afterLogin();
+  regMsg.textContent='';
+  const first = document.getElementById('regFirst').value.trim();
+  const last = document.getElementById('regLast').value.trim();
+  const username = document.getElementById('regUser').value.trim();
+  const password = document.getElementById('regPass').value;
+  const code = document.getElementById('regCode').value.trim();
+  if(!first||!last||!username||!password){ regMsg.textContent='Bitte alle Felder ausfüllen.'; return; }
+  if(code !== '8bschul'){ regMsg.textContent='Ungültiges Kürzel.'; return; }
+  const uid = uidFor(username);
+  const userRef = ref(db, `users/${uid}`);
+  const snap = await get(userRef);
+  if(snap.exists()){ regMsg.textContent='Benutzername bereits vergeben.'; return; }
+  await set(userRef, {username,first,last,password,code,uid,isAdmin:false,theme:'dark'});
+  currentUser = {username,first,last,uid,isAdmin:false,theme:'dark'};
+  afterLogin();
 });
 
 /* LOGIN */
 loginBtn.addEventListener('click', async ()=>{
-  loginMsg.textContent='';
-  const username = loginUser.value.trim();
-  const password = loginPass.value;
-  
-  const uid = uidFor(username);
-  const snap = await get(ref(db, `users/${uid}`));
-  if(!snap.exists()){ loginMsg.textContent='Benutzer nicht gefunden.'; return; }
-  const data = snap.val();
-
-  // Admin shortcut
-  if(username === 'letsseimen' && password === '261011'){
-    const uref = ref(db, `users/${uidFor('Letsseimen')}`);
-    await update(uref, {isAdmin:true});
-    currentUser = (await get(uref)).val();
-    afterLogin(); return;
-  }
-
-  if(data.password !== password){ loginMsg.textContent='Falsches Passwort.'; return; }
-  if(data.code !== '8bschul'){ loginMsg.textContent='Kürzel ungültig.'; return; }
-  
-  currentUser = {...data};
-  
-  // Default game state if missing
-  if(!currentUser.game){
-    currentUser.game = {points:0, level:1, activeEmoji:'😀', unlocked:['😀']};
-    await update(ref(db, `users/${currentUser.uid}`), {game: currentUser.game});
-  }
-
-  afterLogin();
+  loginMsg.textContent='';
+  const username = loginUser.value.trim();
+  const password = loginPass.value;
+  if(username === 'Letsseimen' && password === '261011'){
+    const uid = uidFor(username);
+    const uref = ref(db, `users/${uid}`);
+    const s = await get(uref);
+    if(!s.exists()){
+      await set(uref, {username:'Letsseimen',first:'Seimen',last:'',password:'261011',code:'8bschul',uid,isAdmin:true,theme:'dark'});
+    } else {
+      await update(uref, {isAdmin:true});
+    }
+    currentUser = (await get(uref)).val();
+    afterLogin(); return;
+  }
+  const uid = uidFor(username);
+  const snap = await get(ref(db, `users/${uid}`));
+  if(!snap.exists()){ loginMsg.textContent='Benutzer nicht gefunden.'; return; }
+  const data = snap.val();
+  if(data.password !== password){ loginMsg.textContent='Falsches Passwort.'; return; }
+  if(data.code !== '8bschul'){ loginMsg.textContent='Kürzel ungültig.'; return; }
+  currentUser = {...data};
+  afterLogin();
 });
 
 /* AFTER LOGIN */
 async function afterLogin(){
-  document.getElementById('authCard').style.display='none';
-  document.getElementById('appLayout').classList.remove('hidden');
-  heroGreeting.textContent = `Hallo, ${currentUser.first || currentUser.username} 👋`;
-  composerInitial.textContent = (currentUser.username||'?').charAt(0).toUpperCase();
-  profileInitial.textContent = (currentUser.username||'?').charAt(0).toUpperCase();
-  panelInitialLarge.textContent = (currentUser.username||'?').charAt(0).toUpperCase();
-  panelName.textContent = `${currentUser.first || ''} ${currentUser.last || ''}`;
-  panelUser.textContent = `@${currentUser.username}`;
-  profileBtn.textContent = (currentUser.username||'?').charAt(0).toUpperCase();
-  sidebarUser.textContent = currentUser.username;
-  
-  // apply theme saved
-  applyTheme(currentUser.theme);
+  document.getElementById('authCard').style.display='none';
+  document.getElementById('appLayout').classList.remove('hidden');
+  heroGreeting.textContent = `Hallo, ${currentUser.first || currentUser.username} 👋`;
+  composerInitial.textContent = (currentUser.username||'?').charAt(0).toUpperCase();
+  profileInitial.textContent = (currentUser.username||'?').charAt(0).toUpperCase();
+  panelInitialLarge.textContent = (currentUser.username||'?').charAt(0).toUpperCase();
+  panelName.textContent = `${currentUser.first || ''} ${currentUser.last || ''}`;
+  panelUser.textContent = `@${currentUser.username}`;
+  profileBtn.textContent = (currentUser.username||'?').charAt(0).toUpperCase();
+  sidebarUser.textContent = currentUser.username;
+  // apply theme saved
+  if(currentUser.theme === 'light'){ document.body.classList.add('light'); document.body.classList.remove('green'); }
+  else if(currentUser.theme === 'green'){ document.body.classList.add('green'); document.body.classList.remove('light'); }
+  else { document.body.classList.remove('light'); document.body.classList.remove('green'); }
+  // nav bindings
+  navHome.addEventListener('click', ()=>{ setActive(navHome); showView(viewHome); });
+  navPosts.addEventListener('click', ()=>{ setActive(navPosts); showView(viewPosts); renderFeed(); });
+  navChat.addEventListener('click', ()=>{ setActive(navChat); showView(viewChat); renderContacts(); });
+  navGame.addEventListener('click', ()=>{ setActive(navGame); showView(viewGame); });
+  navProfile.addEventListener('click', ()=>{ setActive(navProfile); showView(viewProfile); });
+  navLogout.addEventListener('click', ()=> logout());
+  document.getElementById('quickPost').addEventListener('click', ()=>{ setActive(navPosts); showView(viewPosts); });
+  document.getElementById('quickChat').addEventListener('click', ()=>{ setActive(navChat); showView(viewChat); });
+  document.getElementById('quickGame').addEventListener('click', ()=>{ setActive(navGame); showView(viewGame); });
 
-  // nav bindings
-  navHome.addEventListener('click', ()=>{ setActive(navHome); showView(viewHome); });
-  navPosts.addEventListener('click', ()=>{ setActive(navPosts); showView(viewPosts); renderFeed(); });
-  navChat.addEventListener('click', ()=>{ setActive(navChat); showView(viewChat); renderContacts(); });
-  navGame.addEventListener('click', ()=>{ setActive(navGame); showView(viewGame); initGame(); });
-  navProfile.addEventListener('click', ()=>{ setActive(navProfile); showView(viewProfile); });
-  navLogout.addEventListener('click', ()=> logout());
-  document.getElementById('quickPost').addEventListener('click', ()=>{ setActive(navPosts); showView(viewPosts); });
-  document.getElementById('quickChat').addEventListener('click', ()=>{ setActive(navChat); showView(viewChat); });
-  document.getElementById('quickGame').addEventListener('click', ()=>{ setActive(navGame); showView(viewGame); initGame(); });
-
-  // Theme select bindings
-  themeSelect.value = currentUser.theme;
-  themeSelect.addEventListener('change', e => setTheme(e.target.value));
-  panelThemeSelect.value = currentUser.theme;
-  panelThemeSelect.addEventListener('change', e => setTheme(e.target.value));
-  [previewDark, panelPreviewDark].forEach(el => el.addEventListener('click', () => setTheme('dark')));
-  [previewLight, panelPreviewLight].forEach(el => el.addEventListener('click', () => setTheme('light')));
-  [previewGreen, panelPreviewGreen].forEach(el => el.addEventListener('click', () => setTheme('green')));
-
-  // Profile Panel
-  profileBtn.addEventListener('click', () => { profilePanel.style.display = 'block'; });
-  panelClose.addEventListener('click', () => { profilePanel.style.display = 'none'; });
-  panelLogout.addEventListener('click', () => logout());
-
-  // Chat Sidebar
-  chatToggle.addEventListener('click', () => chatSidebar.classList.toggle('open'));
-  chatClose.addEventListener('click', () => chatSidebar.classList.remove('open'));
-
-  // start feed, contacts, chats, game
-  renderFeed(); renderContacts(); renderChatContactsRight();
-  updateChatsList(); computeUnread();
-  onValue(ref(db,'chats'), ()=> computeUnread());
-  localStorage.setItem('loggedUser', currentUser.uid);
-
-  // load game data
-  onValue(ref(db, `users/${currentUser.uid}/game`), snap => {
-    if(snap.exists()){
-      currentUser.game = snap.val();
-      updateGameUI();
-    }
-  });
-
-  // cache all users
-  onValue(ref(db,'users'), snap => {
-    usersCache = snap.val() || {};
-    renderContacts(); // Refresh contacts when users change
-    renderChatContactsRight();
-    computeUnread();
-  });
-
-  // Initial game setup on login
-  initGame();
-}
-
-// Check for logged-in user on load
-(async () => {
-  const uid = localStorage.getItem('loggedUser');
-  if(uid){
-    const snap = await get(ref(db, `users/${uid}`));
-    if(snap.exists()){
-      currentUser = snap.val();
-      afterLogin();
-    } else {
-      localStorage.removeItem('loggedUser');
-    }
-  }
-})();
-
-/* THEME */
-function applyTheme(theme){
-  if(theme === 'light'){ document.body.classList.add('light'); document.body.classList.remove('green'); }
-  else if(theme === 'green'){ document.body.classList.add('green'); document.body.classList.remove('light'); }
-  else { document.body.classList.remove('light'); document.body.classList.remove('green'); }
-  themeSelect.value = theme;
-  panelThemeSelect.value = theme;
-}
-
-async function setTheme(theme){
-  await update(ref(db, `users/${currentUser.uid}`), {theme});
-  currentUser.theme = theme;
-  applyTheme(theme);
+  // start feed, contacts, chats
+  renderFeed(); renderContacts(); renderChatContactsRight();
+  updateChatsList(); computeUnread();
+  onValue(ref(db,'chats'), ()=> computeUnread());
+  localStorage.setItem('loggedUser', currentUser.uid);
 }
 
 /* LOGOUT */
@@ -275,339 +201,384 @@ function logout(){ localStorage.removeItem('loggedUser'); location.reload(); }
 
 /* POSTS */
 postBtn.addEventListener('click', async ()=>{
-  const text = postInput.value.trim();
-  if(!text) return;
-  const p = push(ref(db,'posts'));
-  await set(p, {author: currentUser.username, authorUid: currentUser.uid, text, time: now()});
-  postInput.value=''; renderFeed();
+  const text = postInput.value.trim();
+  if(!text) return;
+  const p = push(ref(db,'posts'));
+  await set(p, {author: currentUser.username, authorUid: currentUser.uid, text, time: now()});
+  postInput.value=''; renderFeed();
 });
 
 /* RENDER FEED */
 function renderFeed(){
-  composerInitial.textContent = (currentUser.username||'?').charAt(0).toUpperCase();
-  onValue(ref(db,'posts'), snap=>{
-    const data = snap.val() || {};
-    feedArea.innerHTML = '';
-    const entries = Object.entries(data).sort((a,b)=>b[1].time - a[1].time);
-    entries.forEach(([key,p])=>{
-      const block = document.createElement('div'); block.className='postCard';
-      const left = document.createElement('div'); left.innerHTML = `<div class="initialCircle">${(p.author||'?').charAt(0).toUpperCase()}</div>`;
-      const body = document.createElement('div'); body.style.flex='1';
-      const meta = document.createElement('div'); meta.className='meta'; meta.textContent = `${p.author} • ${new Date(p.time).toLocaleString()}`;
-      const txt = document.createElement('div'); txt.style.marginTop='8px'; txt.textContent = p.text || '';
-      body.appendChild(meta); body.appendChild(txt);
+  composerInitial.textContent = (currentUser.username||'?').charAt(0).toUpperCase();
+  onValue(ref(db,'posts'), snap=>{
+    const data = snap.val() || {};
+    feedArea.innerHTML = '';
+    const entries = Object.entries(data).sort((a,b)=>b[1].time - a[1].time);
+    entries.forEach(([key,p])=>{
+      const block = document.createElement('div'); block.className='postCard';
+      const left = document.createElement('div'); left.innerHTML = `<div class="initialCircle">${(p.author||'?').charAt(0).toUpperCase()}</div>`;
+      const body = document.createElement('div'); body.style.flex='1';
+      const meta = document.createElement('div'); meta.className='meta'; meta.textContent = `${p.author} • ${new Date(p.time).toLocaleString()}`;
+      const txt = document.createElement('div'); txt.style.marginTop='8px'; txt.textContent = p.text || '';
+      body.appendChild(meta); body.appendChild(txt);
 
-      const acts = document.createElement('div'); acts.className='actions';
-      const likeBtn = el('button', `❤️ ${p.likes ? Object.keys(p.likes).length : 0}`); likeBtn.className='btn like';
-      likeBtn.addEventListener('click', async ()=>{
-        const likePath = `posts/${key}/likes/${currentUser.uid}`;
-        const cur = (await get(child(ref(db), likePath))).exists();
-        if(cur) await set(ref(db, likePath), null); else await set(ref(db, likePath), true);
-      });
-      acts.appendChild(likeBtn);
+      const acts = document.createElement('div'); acts.className='actions';
+      const likeBtn = el('button', `❤️ ${p.likes ? Object.keys(p.likes).length : 0}`); likeBtn.className='btn like';
+      likeBtn.addEventListener('click', async ()=>{
+        const likePath = `posts/${key}/likes/${currentUser.uid}`;
+        const cur = (await get(ref(db, likePath))).exists();
+        if(cur) await set(ref(db, likePath), null); else await set(ref(db, likePath), true);
+      });
+      acts.appendChild(likeBtn);
 
-      if(currentUser.username === p.author){
-        const editBtn = el('button','✏️'); editBtn.className='btn';
-        editBtn.addEventListener('click', ()=>{
-          const ta = document.createElement('textarea'); ta.className='textarea'; ta.value = p.text || '';
-          const save = el('button','💾'); save.className='btn primary';
-          save.addEventListener('click', ()=> update(ref(db, `posts/${key}`), {text: ta.value}));
-          body.replaceChild(ta, txt);
-          acts.appendChild(save);
-        });
-        acts.appendChild(editBtn);
-      }
-      if(currentUser.isAdmin || currentUser.username === p.author){
-        const del = el('button','🗑'); del.className='btn';
-        del.addEventListener('click', ()=>{ if(confirm('Post löschen?')) set(ref(db, `posts/${key}`), null); });
-        acts.appendChild(del);
-      }
-      body.appendChild(acts);
+      if(currentUser.username === p.author){
+        const editBtn = el('button','✏️'); editBtn.className='btn';
+        editBtn.addEventListener('click', ()=>{
+          const ta = document.createElement('textarea'); ta.className='textarea'; ta.value = p.text || '';
+          const save = el('button','💾'); save.className='btn primary';
+          save.addEventListener('click', ()=> update(ref(db, `posts/${key}`), {text: ta.value}));
+          body.replaceChild(ta, txt);
+          acts.appendChild(save);
+        });
+        acts.appendChild(editBtn);
+      }
+      if(currentUser.isAdmin || currentUser.username === p.author){
+        const del = el('button','🗑'); del.className='btn';
+        del.addEventListener('click', ()=>{ if(confirm('Post löschen?')) set(ref(db, `posts/${key}`), null); });
+        acts.appendChild(del);
+      }
+      body.appendChild(acts);
 
-      const commentBox = document.createElement('div'); commentBox.className='commentBox';
-      const inpt = document.createElement('input'); inpt.className='input'; inpt.placeholder='Kommentiere...';
-      inpt.addEventListener('keydown', e=>{
-        if(e.key === 'Enter' && inpt.value.trim()){
-          push(ref(db, `posts/${key}/comments`), {author: currentUser.username, authorUid: currentUser.uid, text: inpt.value.trim(), time: now()});
-          inpt.value='';
-        }
-      });
-      commentBox.appendChild(inpt);
-      if(p.comments){
-        Object.entries(p.comments).forEach(([ck,c])=>{
-          const cd = document.createElement('div'); cd.className='comment';
-          cd.innerHTML = `<div class="meta"><b>${c.author}</b> • ${new Date(c.time).toLocaleString()}</div><div class="cText">${c.text}</div>`;
-          if(currentUser.uid === c.authorUid){
-            const eb = el('button','✏️'); eb.className='btn';
-            eb.addEventListener('click', ()=>{
-              const ta = document.createElement('textarea'); ta.className='textarea'; ta.value = c.text;
-              const sv = el('button','💾'); sv.className='btn primary';
-              sv.addEventListener('click', ()=> update(ref(db, `posts/${key}/comments/${ck}`), {text: ta.value}));
-              cd.querySelector('.cText').replaceWith(ta);
-              cd.appendChild(sv);
-            });
-            const dl = el('button','🗑'); dl.className='btn';
-            dl.addEventListener('click', ()=>{ if(confirm('Kommentar löschen?')) set(ref(db, `posts/${key}/comments/${ck}`), null); });
-            cd.appendChild(eb); cd.appendChild(dl);
-          }
-          if(currentUser.isAdmin && currentUser.uid !== c.authorUid){
-            const dl2 = el('button','🗑(Admin)'); dl2.className='btn';
-            dl2.addEventListener('click', ()=>{ if(confirm('Admin löscht Kommentar?')) set(ref(db, `posts/${key}/comments/${ck}`), null); });
-            cd.appendChild(dl2);
-          }
-          commentBox.appendChild(cd);
-        });
-      }
-      body.appendChild(commentBox);
+      const commentBox = document.createElement('div'); commentBox.className='commentBox';
+      const inpt = document.createElement('input'); inpt.className='input'; inpt.placeholder='Kommentiere...';
+      inpt.addEventListener('keydown', e=>{
+        if(e.key === 'Enter' && inpt.value.trim()){
+          push(ref(db, `posts/${key}/comments`), {author: currentUser.username, authorUid: currentUser.uid, text: inpt.value.trim(), time: now()});
+          inpt.value='';
+        }
+      });
+      commentBox.appendChild(inpt);
+      if(p.comments){
+        Object.entries(p.comments).forEach(([ck,c])=>{
+          const cd = document.createElement('div'); cd.className='comment';
+          cd.innerHTML = `<div class="meta"><b>${c.author}</b> • ${new Date(c.time).toLocaleString()}</div><div class="cText">${c.text}</div>`;
+          if(currentUser.uid === c.authorUid){
+            const eb = el('button','✏️'); eb.className='btn';
+            eb.addEventListener('click', ()=>{
+              const ta = document.createElement('textarea'); ta.className='textarea'; ta.value = c.text;
+              const sv = el('button','💾'); sv.className='btn primary';
+              sv.addEventListener('click', ()=> update(ref(db, `posts/${key}/comments/${ck}`), {text: ta.value}));
+              cd.querySelector('.cText').replaceWith(ta);
+              cd.appendChild(sv);
+            });
+            const dl = el('button','🗑'); dl.className='btn';
+            dl.addEventListener('click', ()=>{ if(confirm('Kommentar löschen?')) set(ref(db, `posts/${key}/comments/${ck}`), null); });
+            cd.appendChild(eb); cd.appendChild(dl);
+          }
+          if(currentUser.isAdmin && currentUser.uid !== c.authorUid){
+            const dl2 = el('button','🗑(Admin)'); dl2.className='btn';
+            dl2.addEventListener('click', ()=>{ if(confirm('Admin löscht Kommentar?')) set(ref(db, `posts/${key}/comments/${ck}`), null); });
+            cd.appendChild(dl2);
+          }
+          commentBox.appendChild(cd);
+        });
+      }
+      body.appendChild(commentBox);
 
-      block.appendChild(left); block.appendChild(body);
-      feedArea.appendChild(block);
-    });
-  });
+      block.appendChild(left); block.appendChild(body);
+      feedArea.appendChild(block);
+    });
+  });
 }
 
 /* CONTACTS + CHAT */
-function getChatId(uid1, uid2){
-  return uid1 < uid2 ? `${uid1}_${uid2}` : `${uid2}_${uid1}`;
-}
-
 function renderContacts(){
-  contactsList.innerHTML = '';
-  Object.values(usersCache).forEach(u=>{
-    if(u.uid === currentUser.uid || !u.code || u.code !== '8bschul') return;
-    const row = document.createElement('div'); row.className='navItem userRow';
-    row.style.justifyContent = 'space-between';
-    const initials = el('div', (u.username||'?').charAt(0).toUpperCase()); initials.className='logoCircle'; initials.style.width='34px'; initials.style.height='34px'; initials.style.fontSize='14px';
-    const name = el('div', u.username);
-    row.appendChild(initials);
-    row.appendChild(name);
-    const unread = el('span', '0'); unread.className='unread hidden'; unread.id = `unread_full_${u.uid}`;
-    row.appendChild(unread);
-    row.addEventListener('click', () => openChat(u, 'full'));
-    contactsList.appendChild(row);
-  });
-  updateUnreadBadges();
+  onValue(ref(db,'users'), snap=>{
+    contactsList.innerHTML = ''; chatContactsRight.innerHTML = '';
+    snap.forEach(s=>{
+      const u = s.val();
+      if(!u.code || u.code !== '8bschul' || u.uid === currentUser.uid) return;
+      const row = document.createElement('div'); row.className='userRow navItem'; row.style.display='flex';
+      const initials = el('div', (u.username||'?').charAt(0).toUpperCase()); initials.className='initialCircle'; initials.style.width='44px'; initials.style.height='44px'; initials.style.fontSize='16px';
+      const details = el('div');
+      details.innerHTML = `<b>${u.first || u.username}</b> <div class="small">@${u.username}</div>`;
+
+      row.appendChild(initials);
+      row.appendChild(details);
+
+      // Full Chat
+      const chatRowFull = row.cloneNode(true);
+      chatRowFull.addEventListener('click', ()=> startChat(u));
+      contactsList.appendChild(chatRowFull);
+
+      // Sidebar Chat
+      const chatRowSidebar = row.cloneNode(true);
+      const unread = el('span', '0'); unread.className='unread hidden'; unread.id=`unread-${u.uid}`;
+      chatRowSidebar.appendChild(unread);
+      chatRowSidebar.addEventListener('click', ()=>{ startChat(u, 'sidebar'); });
+      chatContactsRight.appendChild(chatRowSidebar);
+    });
+    updateChatsList();
+  });
 }
 
 function renderChatContactsRight(){
-  chatContactsRight.innerHTML = '';
-  Object.values(usersCache).forEach(u=>{
-    if(u.uid === currentUser.uid || !u.code || u.code !== '8bschul') return;
-    const row = document.createElement('div'); row.className='navItem userRow';
-    row.style.justifyContent = 'space-between';
-    const initials = el('div', (u.username||'?').charAt(0).toUpperCase()); initials.className='logoCircle'; initials.style.width='34px'; initials.style.height='34px'; initials.style.fontSize='14px';
-    const name = el('div', u.username);
-    row.appendChild(initials);
-    row.appendChild(name);
-    const unread = el('span', '0'); unread.className='unread hidden'; unread.id = `unread_right_${u.uid}`;
-    row.appendChild(unread);
-    row.addEventListener('click', () => openChat(u, 'sidebar'));
-    chatContactsRight.appendChild(row);
-  });
-  updateUnreadBadges();
+  // This function is mostly redundant now, as renderContacts updates both lists.
+  // We keep the call in afterLogin() just in case, but rely on renderContacts.
 }
 
-function openChat(targetUser, view){
-  const chatId = getChatId(currentUser.uid, targetUser.uid);
-  currentChatId = chatId;
-  
-  if(view === 'full'){
-    document.getElementById('chatHeaderFull').textContent = targetUser.username;
-    chatFullMessages.innerHTML = '';
-    chatFullInput.disabled = false;
-    chatFullSend.disabled = false;
-    chatFullSend.onclick = () => sendMessage(chatId, chatFullInput);
-    chatFullInput.onkeydown = (e) => { if(e.key === 'Enter') sendMessage(chatId, chatFullInput); };
-    renderMessages(chatId, chatFullMessages);
-    update(ref(db, `chats/${chatId}/members/${currentUser.uid}`), {unread: 0});
-  } else if (view === 'sidebar'){
-    chatSidebarWindow.style.display = 'flex';
-    chatSidebarTitle.textContent = targetUser.username;
-    chatSidebarMessages.innerHTML = '';
-    chatSidebarInput.disabled = false;
-    chatSidebarSend.disabled = false;
-    chatSidebarSend.onclick = () => sendMessage(chatId, chatSidebarInput);
-    chatSidebarInput.onkeydown = (e) => { if(e.key === 'Enter') sendMessage(chatId, chatSidebarInput); };
-    renderMessages(chatId, chatSidebarMessages);
-    update(ref(db, `chats/${chatId}/members/${currentUser.uid}`), {unread: 0});
-    if(!chatSidebar.classList.contains('open')) chatSidebar.classList.add('open');
-  }
+
+function startChat(contact, mode='full'){
+  const users = [currentUser.uid, contact.uid].sort();
+  const chatId = users.join('-');
+  currentChatId = chatId;
+
+  if(mode === 'full'){
+    setActive(navChat);
+    showView(viewChat);
+    chatHeaderFull.textContent = `Chat mit ${contact.first || contact.username}`;
+    renderChatMessages(chatFullMessages, chatId, contact);
+    chatFullSend.onclick = ()=> sendMessage(chatFullInput, chatId, contact.uid);
+    chatFullInput.onkeypress = e=>{ if(e.key === 'Enter') sendMessage(chatFullInput, chatId, contact.uid); };
+  } else { // sidebar
+    chatSidebarWindow.style.display = 'flex';
+    chatSidebarTitle.textContent = `Chat mit ${contact.first || contact.username}`;
+    renderChatMessages(chatSidebarMessages, chatId, contact);
+    chatSidebarSend.onclick = ()=> sendMessage(chatSidebarInput, chatId, contact.uid);
+    chatSidebarInput.onkeypress = e=>{ if(e.key === 'Enter') sendMessage(chatSidebarInput, chatId, contact.uid); };
+    chatSidebar.classList.add('open');
+  }
 }
 
-async function sendMessage(chatId, inputEl){
-  const text = inputEl.value.trim();
-  if(!text) return;
-
-  const otherUid = chatId.replace(currentUser.uid, '').replace('_', '');
-  
-  const p = push(ref(db, `chats/${chatId}/messages`));
-  await set(p, {sender: currentUser.uid, text, time: now()});
-  
-  // Increment unread count for other user
-  const chatRef = ref(db, `chats/${chatId}/members/${otherUid}`);
-  const snap = await get(chatRef);
-  const currentUnread = snap.exists() ? (snap.val().unread || 0) : 0;
-  await update(chatRef, {unread: currentUnread + 1});
-  
-  inputEl.value = '';
+function sendMessage(inputEl, chatId, recipientUid){
+  const text = inputEl.value.trim();
+  if(!text) return;
+  const chatRef = ref(db, `chats/${chatId}`);
+  const msgKey = push(child(chatRef, 'messages')).key;
+  set(child(chatRef, `messages/${msgKey}`), {sender: currentUser.uid, text, time: now()});
+  // Update last message/timestamp
+  update(chatRef, {
+    user1: currentUser.uid,
+    user2: recipientUid,
+    lastMsg: text,
+    lastTime: now(),
+    lastSender: currentUser.uid,
+    unread: {[recipientUid]: true} // Mark as unread for recipient
+  });
+  inputEl.value = '';
 }
 
-function renderMessages(chatId, messagesContainer){
-  onValue(ref(db, `chats/${chatId}/messages`), snap => {
-    messagesContainer.innerHTML = '';
-    const data = snap.val() || {};
-    Object.values(data).forEach(m => {
-      const msgDiv = el('div'); msgDiv.className = `msg ${m.sender === currentUser.uid ? 'me' : ''}`;
-      const bubble = el('span', m.text); bubble.className = 'bubble';
-      msgDiv.appendChild(bubble);
-      messagesContainer.appendChild(msgDiv);
-    });
-    scrollToBottom(messagesContainer);
-  });
-}
+function renderChatMessages(msgEl, chatId, contact){
+  onValue(ref(db, `chats/${chatId}/messages`), snap=>{
+    msgEl.innerHTML = '';
+    snap.forEach(s=>{
+      const m = s.val();
+      const msg = el('div'); msg.className=`msg ${m.sender === currentUser.uid ? 'me' : 'other'}`;
+      const bubble = el('div', m.text); bubble.className='bubble';
+      msg.appendChild(bubble);
+      msgEl.appendChild(msg);
+    });
+    msgEl.scrollTop = msgEl.scrollHeight; // Auto scroll to bottom
 
-function updateChatsList(){
-  onValue(ref(db, 'chats'), snap => {
-    const chats = snap.val() || {};
-    Object.entries(chats).forEach(([chatId, chat]) => {
-      if(chat.members && chat.members[currentUser.uid]){
-        const unread = chat.members[currentUser.uid].unread || 0;
-        const otherUid = chatId.replace(currentUser.uid, '').replace('_', '');
-        
-        const badgeFull = document.getElementById(`unread_full_${otherUid}`);
-        const badgeRight = document.getElementById(`unread_right_${otherUid}`);
-        
-        if(badgeFull) { badgeFull.textContent = unread; badgeFull.classList.toggle('hidden', unread === 0); }
-        if(badgeRight) { badgeRight.textContent = unread; badgeRight.classList.toggle('hidden', unread === 0); }
-      }
-    });
-    computeUnread();
-  });
-}
-
-function updateUnreadBadges(){
-  Object.values(usersCache).forEach(u=>{
-    if(u.uid === currentUser.uid) return;
-    const badgeFull = document.getElementById(`unread_full_${u.uid}`);
-    const badgeRight = document.getElementById(`unread_right_${u.uid}`);
-    if(badgeFull) { badgeFull.textContent = 0; badgeFull.classList.add('hidden'); }
-    if(badgeRight) { badgeRight.textContent = 0; badgeRight.classList.add('hidden'); }
-  });
-  updateChatsList();
+    // Mark as read for current user
+    if(currentChatId === chatId){ // only if currently viewing
+      update(ref(db, `chats/${chatId}`), {[`unread/${currentUser.uid}`]: null});
+    }
+    computeUnread();
+  });
 }
 
 function computeUnread(){
-  let total = 0;
-  onValue(ref(db, 'chats'), snap => {
-    const chats = snap.val() || {};
-    Object.values(chats).forEach(chat => {
-      if(chat.members && chat.members[currentUser.uid]){
-        total += chat.members[currentUser.uid].unread || 0;
-      }
-    });
-    bellCount.textContent = total;
-    bellCount.classList.toggle('hidden', total === 0);
-  });
+  unreadTotal = 0;
+  onValue(ref(db,'chats'), snap=>{
+    snap.forEach(s=>{
+      const chat = s.val();
+      if(chat.user1 === currentUser.uid || chat.user2 === currentUser.uid){
+        const recipient = chat.user1 === currentUser.uid ? chat.user2 : chat.user1;
+        const unreadForMe = chat.unread && chat.unread[currentUser.uid];
+
+        const unreadEl = document.getElementById(`unread-${recipient}`);
+        if(unreadEl){
+          if(unreadForMe){
+            unreadTotal++;
+            unreadEl.textContent = '1'; // Simple indicator for unread chat
+            unreadEl.classList.remove('hidden');
+          } else {
+            unreadEl.classList.add('hidden');
+          }
+        }
+      }
+    });
+    if(unreadTotal > 0){
+      bellCount.textContent = unreadTotal;
+      bellCount.classList.remove('hidden');
+    } else {
+      bellCount.classList.add('hidden');
+    }
+  }, { onlyOnce: false });
 }
 
-/* EMOJI GAME */
-const EMOJIS = ['😀', '😂', '😍', '🤩', '😎', '🥳', '🤯', '🥶', '💰', '👑', '🚀'];
-const LEVELS = [1, 5, 15, 30, 50, 75, 100, 150, 200, 300, 500]; // Points to unlock next emoji
-
-function initGame(){
-  updateGameUI();
-  activeEmoji.removeEventListener('click', clickEmoji);
-  activeEmoji.addEventListener('click', clickEmoji);
-  upgradeBtn.addEventListener('click', upgradeClickPower);
-  resetGameBtn.addEventListener('click', resetGame);
+function updateChatsList(){
+  onValue(ref(db,'chats'), snap=>{
+    // This function ensures the latest unread status is available in renderContacts
+    // which is why it's called after renderContacts in afterLogin().
+    // The actual update of the unread count on the contacts list is done in computeUnread().
+  });
 }
+
+chatToggle.addEventListener('click', ()=> chatSidebar.classList.toggle('open'));
+chatClose.addEventListener('click', ()=> chatSidebar.classList.remove('open'));
+
+/* PROFILE */
+profileBtn.addEventListener('click', ()=>{ profilePanel.style.display = profilePanel.style.display === 'block' ? 'none' : 'block'; });
+panelClose.addEventListener('click', ()=> profilePanel.style.display = 'none');
+panelLogout.addEventListener('click', ()=> logout());
+
+// Theme management
+const themeChangeHandler = (event) => {
+  const newTheme = event.target.value;
+  updateTheme(newTheme);
+};
+
+themeSelect.addEventListener('change', themeChangeHandler);
+panelThemeSelect.addEventListener('change', themeChangeHandler);
+
+previewDark.addEventListener('click', ()=> updateTheme('dark'));
+previewLight.addEventListener('click', ()=> updateTheme('light'));
+previewGreen.addEventListener('click', ()=> updateTheme('green'));
+panelPreviewDark.addEventListener('click', ()=> updateTheme('dark'));
+panelPreviewLight.addEventListener('click', ()=> updateTheme('light'));
+panelPreviewGreen.addEventListener('click', ()=> updateTheme('green'));
+
+function updateTheme(theme){
+  if(currentUser){
+    const userRef = ref(db, `users/${currentUser.uid}`);
+    update(userRef, {theme});
+    currentUser.theme = theme;
+  }
+  document.body.classList.remove('light', 'green');
+  if(theme === 'light'){ document.body.classList.add('light'); }
+  else if(theme === 'green'){ document.body.classList.add('green'); }
+  
+  // Update select boxes
+  themeSelect.value = theme;
+  panelThemeSelect.value = theme;
+}
+
+// Check if user is logged in on load
+document.addEventListener('DOMContentLoaded', async ()=>{
+  const uid = localStorage.getItem('loggedUser');
+  if(uid){
+    const snap = await get(ref(db, `users/${uid}`));
+    if(snap.exists()){
+      currentUser = snap.val();
+      afterLogin();
+    }
+  }
+});
+
+/* EMOJI GAME LOGIC */
+const EMOJIS = ['😀', '😍', '🤩', '🥳', '😎', '🤯', '🤠', '😇', '😈', '👽'];
+const UNLOCK_COSTS = [10, 20, 40, 70, 110, 160, 220, 290, 370];
+
+let gamePoints = 0;
+let clickPower = 1;
+let unlockedEmojis = ['😀'];
+let activeIndex = 0;
 
 function updateGameUI(){
-  if(!currentUser || !currentUser.game) return;
+  gamePointsEl.textContent = gamePoints;
+  activeEmoji.textContent = EMOJIS[activeIndex];
+  gameProgress.style.width = `${Math.min(100, (gamePoints / UNLOCK_COSTS[unlockedEmojis.length - 1] * 100) || 0)}%`;
 
-  const { points, level, activeEmoji: currentEmoji, unlocked } = currentUser.game;
-  
-  gamePointsEl.textContent = points;
-  activeEmoji.textContent = currentEmoji;
+  // Update upgrade button text and availability
+  const nextCost = 20 * clickPower;
+  upgradeBtn.textContent = `Upgrade (x${clickPower + 1} für ${nextCost} Punkte)`;
+  upgradeBtn.disabled = gamePoints < nextCost;
 
-  // Progress Bar
-  const nextLevelIndex = unlocked.length;
-  const targetPoints = LEVELS[nextLevelIndex] || points + 1; // Last emoji = max
-  const progress = Math.min(100, (points / targetPoints) * 100);
-  gameProgress.style.width = `${progress}%`;
-  
-  if(points >= targetPoints && nextLevelIndex < EMOJIS.length){
-    const nextEmoji = EMOJIS[nextLevelIndex];
-    if(!unlocked.includes(nextEmoji)){
-      unlocked.push(nextEmoji);
-      update(ref(db, `users/${currentUser.uid}/game/unlocked`), unlocked);
-    }
-  }
-
-  // Unlocked List
-  unlockedList.innerHTML = '';
-  unlocked.forEach(emoji => {
-    const span = el('span', emoji); 
-    span.style.fontSize = '28px'; 
-    span.style.cursor = 'pointer';
-    span.style.border = emoji === currentEmoji ? '2px solid var(--accent-1)' : 'none';
-    span.style.borderRadius = '6px';
-    span.style.padding = '2px';
-    span.title = 'Als aktives Emoji festlegen';
-    span.addEventListener('click', () => setActiveEmoji(emoji));
-    unlockedList.appendChild(span);
-  });
-  
-  // Upgrade Button
-  const upgradeCost = level * 20;
-  upgradeBtn.textContent = `Upgrade (x${level + 1} für ${upgradeCost} Punkte)`;
-  upgradeBtn.disabled = points < upgradeCost;
+  // Render unlocked list
+  unlockedList.innerHTML = '';
+  unlockedEmojis.forEach((emoji, index) => {
+    const item = el('div', emoji);
+    item.style.fontSize = '24px';
+    item.style.cursor = 'pointer';
+    item.style.borderRadius = '6px';
+    item.style.padding = '4px';
+    if(index === activeIndex) {
+      item.style.border = `2px solid var(--accent-1)`;
+    }
+    item.addEventListener('click', ()=> {
+      activeIndex = index;
+      updateGameUI();
+    });
+    unlockedList.appendChild(item);
+  });
 }
 
-function clickEmoji(e){
-  if(!currentUser || !currentUser.game) return;
-  
-  const clickValue = currentUser.game.level;
-  const newPoints = currentUser.game.points + clickValue;
-  
-  // Save to DB
-  update(ref(db, `users/${currentUser.uid}/game`), {points: newPoints});
-
-  // Particle effect
-  const particle = el('div', `+${clickValue}`);
-  particle.className = 'particle';
-  particle.style.left = `${e.clientX}px`;
-  particle.style.top = `${e.clientY}px`;
-  document.body.appendChild(particle);
-  
-  requestAnimationFrame(() => {
-    particle.style.opacity = '1';
-    particle.style.transform = `translate(-50%, calc(-50% - 40px)) scale(1)`;
-  });
-
-  setTimeout(() => {
-    particle.remove();
-  }, 450);
+function checkUnlock(){
+  if(unlockedEmojis.length < EMOJIS.length){
+    const nextUnlockIndex = unlockedEmojis.length - 1;
+    const cost = UNLOCK_COSTS[nextUnlockIndex];
+    if(gamePoints >= cost){
+      unlockedEmojis.push(EMOJIS[unlockedEmojis.length]);
+      // Set newly unlocked emoji as active
+      activeIndex = unlockedEmojis.length - 1;
+      // Subtract the cost and continue checking
+      gamePoints -= cost;
+      checkUnlock();
+    }
+  }
 }
 
-function upgradeClickPower(){
-  if(!currentUser || !currentUser.game) return;
-  const upgradeCost = currentUser.game.level * 20;
-  
-  if(currentUser.game.points >= upgradeCost){
-    const newPoints = currentUser.game.points - upgradeCost;
-    const newLevel = currentUser.game.level + 1;
-    update(ref(db, `users/${currentUser.uid}/game`), {points: newPoints, level: newLevel});
-  }
+activeEmoji.addEventListener('click', (e)=>{
+  gamePoints += clickPower;
+  checkUnlock();
+  updateGameUI();
+  createParticle(e.clientX, e.clientY);
+  activeEmoji.style.transform = 'scale(0.9)';
+  setTimeout(()=> activeEmoji.style.transform = 'scale(1.0)', 80);
+});
+
+upgradeBtn.addEventListener('click', ()=>{
+  const cost = 20 * clickPower;
+  if(gamePoints >= cost){
+    gamePoints -= cost;
+    clickPower++;
+    updateGameUI();
+  }
+});
+
+resetGameBtn.addEventListener('click', ()=>{
+  if(confirm('Möchtest du deinen Spielstand wirklich zurücksetzen?')){
+    gamePoints = 0;
+    clickPower = 1;
+    unlockedEmojis = ['😀'];
+    activeIndex = 0;
+    updateGameUI();
+  }
+});
+
+function createParticle(x, y){
+  const particle = el('div', `+${clickPower}`);
+  particle.className = 'particle';
+  particle.style.left = `${x}px`;
+  particle.style.top = `${y}px`;
+  document.body.appendChild(particle);
+
+  // Animate the particle
+  setTimeout(() => {
+    particle.style.opacity = '1';
+    particle.style.transform = 'translate(-50%, -100%) scale(1)';
+  }, 10);
+
+  // Remove the particle after animation
+  setTimeout(() => {
+    particle.style.opacity = '0';
+    particle.style.transform = 'translate(-50%, -200%) scale(0.6)';
+    setTimeout(() => particle.remove(), 450);
+  }, 100);
 }
 
-function setActiveEmoji(emoji){
-  update(ref(db, `users/${currentUser.uid}/game/activeEmoji`), emoji);
-}
-
-function resetGame(){
-  if(confirm('Möchtest du das Spiel wirklich zurücksetzen? Alle Punkte und Upgrades gehen verloren!')){
-    const resetData = {points:0, level:1, activeEmoji:'😀', unlocked:['😀']};
-    update(ref(db, `users/${currentUser.uid}/game`), resetData);
-  }
-}
+// Initial game UI load (after login check)
+navGameBtn.addEventListener('click', ()=> updateGameUI());
